@@ -1,3 +1,4 @@
+# ids_project/routers/overseer.py
 """Overseer dashboard API routes for IDS administration."""
 
 from __future__ import annotations
@@ -10,21 +11,12 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
 
-from scoring_engine import (
-    BLOCKED_USERS,
-    THREAT_LOG,
-    USER_SCORES,
-    SeverityLevel,
-    ThreatEvent,
-    clear_user_threats,
-    get_user_summary,
-    unblock_user,
-)
+from config import ALGORITHM, SECRET_KEY
+from models import SeverityLevel, ThreatEvent
+from scoring_engine import clear_user_threats, get_user_summary, unblock_user
+from state import BLOCKED_USERS, THREAT_LOG, USER_SCORES
 
-SECRET_KEY = "change-this-in-real-projects"
-ALGORITHM = "HS256"
 security = HTTPBearer(auto_error=False)
-
 router = APIRouter(prefix="/overseer", tags=["Overseer Dashboard"])
 
 
@@ -86,9 +78,7 @@ def _decode_and_validate_token(token: str) -> dict:
     return payload
 
 
-def require_overseer(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
-) -> dict:
+def require_overseer(credentials: HTTPAuthorizationCredentials = Depends(security)) -> dict:
     """Ensure requester is authenticated and has the overseer role."""
 
     if credentials is None:

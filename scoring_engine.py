@@ -1,21 +1,16 @@
+# ids_project/scoring_engine.py
 """In-memory threat scoring engine for an IDS."""
 
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta, timezone
-from enum import Enum
-from typing import Dict, List, Set
-from uuid import UUID, uuid4
+from typing import Dict
+from uuid import uuid4
 
-
-class SeverityLevel(str, Enum):
-    """Supported severity levels for threats."""
-
-    LOW = "LOW"
-    MEDIUM = "MEDIUM"
-    HIGH = "HIGH"
-    SEVERE = "SEVERE"
+from config import SCORE_THRESHOLDS, THREAT_DEFINITIONS
+from models import SeverityLevel, ThreatEvent
+from state import BLOCKED_USERS, SESSION_IP_MAP, THREAT_LOG, USER_SCORES
 
 
 @dataclass
@@ -26,45 +21,17 @@ class ThreatDefinition:
     points: float
 
 
-@dataclass
-class ThreatEvent:
-    """Represents a recorded threat occurrence for a user."""
-
-    event_id: UUID
-    user_id: str
-    ip_address: str
-    threat_type: str
-    severity: SeverityLevel
-    points_added: float
-    total_points_after: float
-    timestamp: datetime
-    is_auto_block: bool
-
-
-THREAT_DEFINITIONS: Dict[str, ThreatDefinition] = {
-    "SYN_FLOOD": ThreatDefinition(SeverityLevel.SEVERE, 85),
-    "UDP_FLOOD": ThreatDefinition(SeverityLevel.SEVERE, 80),
-    "SESSION_HIJACKING": ThreatDefinition(SeverityLevel.HIGH, 75),
-    "SQL_INJECTION": ThreatDefinition(SeverityLevel.HIGH, 70),
-    "DNS_AMPLIFICATION": ThreatDefinition(SeverityLevel.HIGH, 65),
-    "XSS_INJECTION": ThreatDefinition(SeverityLevel.HIGH, 60),
-    "COMMAND_INJECTION": ThreatDefinition(SeverityLevel.HIGH, 60),
-    "PORT_SCANNING": ThreatDefinition(SeverityLevel.MEDIUM, 40),
-    "BRUTE_FORCE": ThreatDefinition(SeverityLevel.MEDIUM, 35),
-    "HIGH_REQUEST_RATE": ThreatDefinition(SeverityLevel.LOW, 10),
-    "SUSPICIOUS_USER_AGENT": ThreatDefinition(SeverityLevel.LOW, 5),
+NORMALIZED_THREAT_DEFINITIONS: Dict[str, ThreatDefinition] = {
+    threat_type: ThreatDefinition(
+        severity=SeverityLevel(str(definition["severity"])),
+        points=float(definition["points"]),
+    )
+    for threat_type, definition in THREAT_DEFINITIONS.items()
 }
 
-# User data stores.
-USER_SCORES: Dict[str, float] = {}
-BLOCKED_USERS: Set[str] = set()
-THREAT_LOG: List[ThreatEvent] = []
-SESSION_IP_MAP: Dict[str, str] = {}
-
-# Threshold constants.
-NO_ACTION_MAX = 30
-FLAG_TO_OVERSEER_MAX = 60
-AUTO_BLOCK_MAX = 90
+NO_ACTION_MAX = SCORE_THRESHOLDS["NO_ACTION_MAX"]
+FLAG_TO_OVERSEER_MAX = SCORE_THRESHOLDS["FLAG_TO_OVERSEER_MAX"]
+AUTO_BLOCK_MAX = SCORE_THRESHOLDS["AUTO_BLOCK_MAX"]
 
 
 def _last_user_event(user_id: str) -> ThreatEvent | None:
@@ -79,7 +46,7 @@ def _last_user_event(user_id: str) -> ThreatEvent | None:
 def record_threat(user_id: str, ip_address: str, threat_type: str) -> ThreatEvent:
     """Record a threat event, update score state, and auto-block when required."""
 
-    definition = THREAT_DEFINITIONS.get(threat_type)
+    definition = NORMALIZED_THREAT_DEFINITIONS.get(threat_type)
     if definition is None:
         raise ValueError(f"Unknown threat type: {threat_type}")
 
@@ -155,11 +122,10 @@ def unblock_user(user_id: str) -> None:
 def clear_user_threats(user_id: str) -> None:
     """Clear all threat events and score state for a user, and unblock them."""
 
-    global THREAT_LOG
-
-    THREAT_LOG = [event for event in THREAT_LOG if event.user_id != user_id]
+    THREAT_LOG[:] = [event for event in THREAT_LOG if event.user_id != user_id]
     USER_SCORES[user_id] = 0.0
     BLOCKED_USERS.discard(user_id)
+    SESSION_IP_MAP.pop(user_id, None)
 
 
 def is_blocked(user_id: str) -> bool:
