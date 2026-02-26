@@ -17,6 +17,9 @@ from fastapi.responses import JSONResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
 
+from detectors.session_layer import check_brute_force, check_session_hijack, reset_failed_attempts
+from scoring_engine import SESSION_IP_MAP, record_threat
+
 # ============================
 # App setup
 # ============================
@@ -81,7 +84,7 @@ def add_to_blacklist(jti: str, exp_ts: float, reason: str) -> None:
 
 
 
-def create_access_token(user_id: str) -> str:
+def create_access_token(user_id: str, client_ip: str) -> str:
     """
     Create a JWT containing:
     - sub: subject/user id
@@ -94,7 +97,9 @@ def create_access_token(user_id: str) -> str:
         "exp": expire_dt,
         "jti": str(uuid4()),
     }
-    return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+    token = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+    SESSION_IP_MAP[payload["jti"]] = client_ip
+    return token
 
 
 
@@ -185,6 +190,21 @@ async def intrusion_detection_middleware(request: Request, call_next):
                 # Ignore malformed tokens in middleware; endpoint auth will handle response.
                 print("[IDS] Could not parse token during suspicious-IP handling")
 
+    auth_header = request.headers.get("Authorization")
+    token = extract_token_from_auth_header(auth_header)
+    if token:
+        try:
+            payload = decode_and_validate_token(token)
+            jti = payload["jti"]
+            user_id = payload["sub"]
+            threat_type = check_session_hijack(jti, client_ip)
+            if threat_type:
+                record_threat(user_id, client_ip, threat_type)
+                add_to_blacklist(jti, float(payload["exp"]), reason="session-hijack")
+        except HTTPException:
+            # Ignore token validation failures in middleware; auth dependency handles them.
+            pass
+
     response = await call_next(request)
     return response
 
@@ -204,14 +224,19 @@ def require_auth(credentials: HTTPAuthorizationCredentials = Depends(security)) 
 # API endpoints
 # ============================
 @app.post("/login")
-def login(data: LoginRequest):
+def login(data: LoginRequest, request: Request):
     """Authenticate a demo user and return a JWT token."""
+    client_ip = request.client.host if request.client else "unknown"
     user = USERS.get(data.username)
     if not user or user["password"] != data.password:
         print(f"[AUTH] Failed login for username={data.username}")
+        threat_type = check_brute_force(client_ip, None)
+        if threat_type:
+            record_threat("unknown", client_ip, threat_type)
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid username or password")
 
-    token = create_access_token(user_id=user["id"])
+    reset_failed_attempts(client_ip)
+    token = create_access_token(user_id=user["id"], client_ip=client_ip)
     print(f"[AUTH] Successful login for username={data.username}")
     return {"access_token": token, "token_type": "bearer"}
 
