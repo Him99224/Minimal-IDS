@@ -35,8 +35,9 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 30
 # In real systems, this would be in a database with hashed passwords.
 # ============================
 USERS = {
-    "alice": {"id": "user-1", "password": "password123"},
-    "bob": {"id": "user-2", "password": "password123"},
+    "alice": {"id": "user-1", "password": "password123", "role": "user"},
+    "bob": {"id": "user-2", "password": "password123", "role": "user"},
+    "admin": {"id": "overseer-1", "password": "adminpass", "role": "overseer"},
 }
 
 # ============================
@@ -81,7 +82,7 @@ def add_to_blacklist(jti: str, exp_ts: float, reason: str) -> None:
 
 
 
-def create_access_token(user_id: str) -> str:
+def create_access_token(user_id: str, role: str = "user") -> str:
     """
     Create a JWT containing:
     - sub: subject/user id
@@ -93,6 +94,7 @@ def create_access_token(user_id: str) -> str:
         "sub": user_id,
         "exp": expire_dt,
         "jti": str(uuid4()),
+        "role": role,
     }
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
@@ -211,7 +213,7 @@ def login(data: LoginRequest):
         print(f"[AUTH] Failed login for username={data.username}")
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid username or password")
 
-    token = create_access_token(user_id=user["id"])
+    token = create_access_token(user_id=user["id"], role=user.get("role", "user"))
     print(f"[AUTH] Successful login for username={data.username}")
     return {"access_token": token, "token_type": "bearer"}
 
@@ -233,3 +235,8 @@ def logout(payload: Dict[str, Any] = Depends(require_auth)):
     exp = payload["exp"]
     add_to_blacklist(jti, float(exp), reason="manual-logout")
     return JSONResponse(content={"message": "Logged out. Token revoked."})
+
+
+from routers import overseer
+
+app.include_router(overseer.router)
