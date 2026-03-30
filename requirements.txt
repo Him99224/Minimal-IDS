@@ -1,0 +1,5 @@
+FastAPI
+Uvicorn
+Pydantic
+PyJWT
+python-multipart
