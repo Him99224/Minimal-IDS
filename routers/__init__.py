@@ -1,2 +1,5 @@
-# ids_project/routers/__init__.py
-"""API router package for IDS endpoints."""
+"""Router package exports for IDS API modules."""
+
+from routers.overseer import router as overseer_router
+
+__all__ = ["overseer_router"]
