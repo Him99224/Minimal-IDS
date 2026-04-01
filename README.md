@@ -127,6 +127,20 @@ A template is provided in `.env.example`. Example variables include:
 - `WINDOW_SECONDS`
 - `REQUEST_LIMIT`
 
+
+## Future Scope
+
+Potential next improvements for this project include:
+
+- Move from in-memory runtime state to a persistent datastore (e.g., PostgreSQL/Redis) for production durability.
+- Add network-level packet capture integrations (e.g., with Scapy/Zeek) to correlate API abuse with transport/session anomalies.
+- Introduce role-based access control and audit trails for overseer actions.
+- Add adaptive risk scoring (per-user baselines, anomaly detection, and model-assisted scoring).
+- Export observability metrics and traces (Prometheus/OpenTelemetry + Grafana dashboards).
+- Support configurable response policies (alert-only, soft block, hard block, and temporary quarantine windows).
+- Add containerized deployment templates (Docker Compose/Kubernetes) with horizontal scaling guidance.
+- Expand test coverage with integration and load tests to validate detection quality under realistic traffic.
+
 ## License
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file.
