@@ -28,4 +28,5 @@ THREAT_DEFINITIONS: dict[str, dict[str, float | str]] = {
     "BRUTE_FORCE": {"severity": "MEDIUM", "points": 35},
     "HIGH_REQUEST_RATE": {"severity": "LOW", "points": 10},
     "SUSPICIOUS_USER_AGENT": {"severity": "LOW", "points": 5},
+    "MANUAL_BLOCK": {"severity": "HIGH", "points": 0},
 }
