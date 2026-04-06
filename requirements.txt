@@ -3,3 +3,4 @@ Uvicorn
 Pydantic
 PyJWT
 python-multipart
+websockets

@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Dict
@@ -43,6 +44,27 @@ def _last_user_event(user_id: str) -> ThreatEvent | None:
     return None
 
 
+def _try_broadcast(event: ThreatEvent) -> None:
+    """Best-effort async broadcast of a threat event to WebSocket clients."""
+
+    from ws_manager import manager
+
+    data = {
+        "type": "threat_event",
+        "event": asdict(event),
+        "stats": {
+            "total_threats": len(THREAT_LOG),
+            "blocked_users": len(BLOCKED_USERS),
+            "tracked_users": len(USER_SCORES),
+        },
+    }
+    try:
+        loop = asyncio.get_running_loop()
+        loop.create_task(manager.broadcast(data))
+    except RuntimeError:
+        pass
+
+
 def record_threat(user_id: str, ip_address: str, threat_type: str) -> ThreatEvent:
     """Record a threat event, update score state, and auto-block when required."""
 
@@ -72,6 +94,8 @@ def record_threat(user_id: str, ip_address: str, threat_type: str) -> ThreatEven
         is_auto_block=should_auto_block,
     )
     THREAT_LOG.append(event)
+
+    _try_broadcast(event)
 
     return event
 
