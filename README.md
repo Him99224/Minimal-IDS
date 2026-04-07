@@ -1,146 +1,265 @@
-# Minimal-IDS
+# 🛡️ Minimal-IDS
 
-A lightweight **Intrusion Detection System (IDS)** backend built with FastAPI for educational use, experimentation, and university project demonstrations.
+A modular **Intrusion Detection System (IDS)** built with FastAPI that simulates **API-layer security mechanisms** such as request inspection, threat detection, behavioral scoring, and adaptive access control.
 
-## Features
+---
 
-- JWT-based authentication (`/login`, `/logout`, `/protected`)
-- In-memory threat scoring engine with automatic score accumulation
-- Threshold-based user blocking workflow
-- Request-level intrusion checks for:
-  - SQL Injection
-  - XSS Injection
-  - Command Injection
-  - High request rate / abuse patterns
-- Overseer (admin) API routes for monitoring users and threat events
+## 🚀 Overview
 
-> **Note:** This project intentionally uses in-memory state for simplicity and rapid demonstration.
+Minimal-IDS is a **backend security system prototype** designed to monitor incoming API requests, detect malicious patterns, and dynamically respond based on user behavior.
 
-## Project Structure
+It demonstrates concepts used in real-world systems such as:
 
-```text
-Minimal-IDS/
-├── detectors/                  # Intrusion detectors by layer
-├── routers/                    # API routers (overseer/admin tools)
-├── tests/                      # Unit tests
-├── .github/workflows/tests.yml # CI test workflow
-├── config.py                   # Config constants and threat definitions
-├── main.py                     # FastAPI application entry point
-├── scoring_engine.py           # Threat scoring and block state logic
-└── state.py                    # In-memory runtime stores
+* Web Application Firewalls (WAF)
+* API Gateways with security filters
+* Zero-trust backend architectures
+
+---
+
+## ⚙️ Features
+
+* 🔐 JWT-based authentication (`/login`, `/logout`, `/protected`)
+* 🧠 Threat scoring engine with accumulation + decay
+* 🚫 Automatic user blocking based on thresholds
+* 🛡️ Multi-layer intrusion detection:
+
+  * SQL Injection
+  * XSS Injection
+  * Command Injection
+  * Brute Force Attacks
+  * Session Hijacking
+  * High request rate / abuse patterns
+* 📡 Real-time monitoring via WebSockets
+* 🧑‍💼 Overseer (admin) APIs for monitoring users and threats
+
+---
+
+## 🔄 Request Processing Flow
+
+1. Incoming request intercepted via FastAPI middleware
+2. Rate limiting and payload inspection applied
+3. Session-level and payload-level detectors executed
+4. Threat events recorded in the scoring engine
+5. User score updated (with decay over time)
+6. User flagged or blocked based on thresholds
+7. Events streamed to dashboard in real-time
+
+---
+
+## 🔍 Detection Engine
+
+The IDS uses a **multi-layer detection approach** combining session-level and payload-level analysis.
+
+### 🧠 Session Layer
+
+* **Brute Force Detection**
+  Triggered after repeated failed login attempts
+
+* **Session Hijacking Detection**
+  Detects IP changes within an active session
+
+### 📡 Transport / Payload Layer
+
+* **SQL Injection**
+  Regex-based signature matching (e.g., `' OR 1=1`, `UNION SELECT`)
+
+* **XSS Injection**
+  Detection of script tags and malicious HTML payloads
+
+* **Command Injection**
+  Shell operators and system command patterns (`;`, `&&`, `|`, `/bin/sh`)
+
+* **Rate Abuse Detection**
+  Sliding window request rate monitoring
+
+📌 Payloads are URL-decoded before inspection to detect **obfuscated attacks**.
+
+All detection modules are modular and located in the `detectors/` directory.
+
+---
+
+## ⚠️ Example Detection
+
+```http
+POST /login
+Payload: {"username": "admin' OR 1=1 --"}
 ```
 
-## Tech Stack
+**System Behavior:**
 
-- Python 3.11+
-- FastAPI
-- Uvicorn
-- Pydantic
-- PyJWT
-- Pytest (for tests)
+* Detected: SQL Injection
+* Threat Score: Increased
+* Action: User flagged or blocked (based on threshold)
 
-## Getting Started
+---
 
-### 1) Clone and enter the repository
+## 🧠 Threat Scoring Model
+
+Threat points are defined in `config.py` and accumulated per user:
+
+* **0–30** → No action
+* **31–60** → Flag for review
+* **61+** → Auto-block
+
+📉 Score decay:
+
+* 50% reduction every 24 hours since last activity
+
+---
+
+## 🏗️ System Perspective
+
+This project simulates an **API-layer intrusion detection system**, focusing on:
+
+* Real-time request interception
+* Behavioral risk scoring
+* Adaptive access control
+
+It reflects design patterns used in:
+
+* WAFs (Web Application Firewalls)
+* API security gateways
+* Zero-trust systems
+
+---
+
+## 🔑 Demo Accounts
+
+The system includes predefined users for testing:
+
+| Username | Password    | Role     |
+| -------- | ----------- | -------- |
+| alice    | password123 | user     |
+| bob      | password123 | user     |
+| admin    | adminpass   | overseer |
+
+> Note: Credentials are hardcoded for demonstration purposes. See `main.py` for details.
+
+---
+
+## 📡 Real-Time Events (WebSocket)
+
+Connect to the live event stream:
+
+```
+ws://127.0.0.1:8000/ws/events
+```
+
+Streams real-time threat events for monitoring dashboards.
+
+---
+
+## ⚙️ Middleware Behavior
+
+* IDS checks are applied via middleware to incoming requests
+* Certain routes are intentionally excluded:
+
+  * `/api/` (dashboard APIs)
+  * `/demo/` (simulation routes)
+  * `/static`, `/docs`, `/ws/`
+
+This ensures internal system operations and monitoring endpoints are not affected by intrusion checks.
+
+---
+
+## 🧱 Project Structure
+
+```
+Minimal-IDS/
+├── detectors/                  # Session & payload-level detection logic
+├── routers/                    # API routers (overseer/admin tools)
+├── tests/                      # Unit tests
+├── config.py                   # Threat definitions and constants
+├── main.py                     # FastAPI app + middleware pipeline
+├── scoring_engine.py           # Threat scoring and blocking logic
+└── state.py                    # In-memory runtime state
+```
+
+---
+
+## 🛠️ Tech Stack
+
+* Python 3.11+
+* FastAPI
+* Uvicorn
+* Pydantic
+* PyJWT
+* Pytest
+
+---
+
+## ▶️ Getting Started
 
 ```bash
 git clone https://github.com/Him99224/Minimal-IDS.git
 cd Minimal-IDS
-```
 
-### 2) Create and activate a virtual environment
-
-```bash
 python -m venv .venv
-source .venv/bin/activate  # Windows: .venv\\Scripts\\activate
-```
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
 
-### 3) Install dependencies
-
-```bash
 pip install -r requirements.txt
-pip install pytest
-```
-
-### 4) Configure environment
-
-```bash
 cp .env.example .env
-```
 
-Update values as needed for your environment.
-
-### 5) Run the application
-
-```bash
 uvicorn main:app --reload
 ```
 
-The API will be available at:
+* API: http://127.0.0.1:8000
+* Docs: http://127.0.0.1:8000/docs
 
-- `http://127.0.0.1:8000`
-- Swagger docs: `http://127.0.0.1:8000/docs`
+---
 
-## Threat Scoring Model
-
-Threat points are defined in `config.py` and accumulated per user. Current thresholds:
-
-- **0 to 30**: No action
-- **31 to 60**: Flag for overseer review
-- **61+**: Auto-block user (implemented in scoring engine)
-
-Additionally, score decay is applied at **50% per full 24 hours** since the user's last event.
-
-## Testing
-
-Run unit tests with:
+## 🧪 Testing
 
 ```bash
 pytest -q
 ```
 
-Current tests target:
+Covers:
 
-- Threat recording and point accumulation
-- Unknown threat validation
-- Auto-block transitions
-- Score decay behavior
-- User summary ordering
-- State reset utilities (`unblock_user`, `clear_user_threats`)
+* Threat scoring and accumulation
+* Auto-block transitions
+* Score decay behavior
+* State reset utilities
 
-## CI/CD
+---
 
-GitHub Actions is configured in `.github/workflows/tests.yml` to:
+## ⚖️ Design Tradeoffs
 
-- Trigger on pushes and pull requests
-- Set up Python 3.11 and 3.12
-- Install dependencies
-- Execute test suite with `pytest`
+* **In-memory state**
+  Used for simplicity and fast prototyping; not suitable for distributed systems
 
-## Environment Variables
+* **IP-based fallback for unauthenticated users**
+  May group multiple users behind the same NAT/proxy
 
-A template is provided in `.env.example`. Example variables include:
+* **Token blacklist cleanup**
+  Performed opportunistically (no background worker) to keep implementation simple
 
-- `SECRET_KEY`
-- `ALGORITHM`
-- `ACCESS_TOKEN_EXPIRE_MINUTES`
-- `WINDOW_SECONDS`
-- `REQUEST_LIMIT`
+* **Demo credentials & secrets**
+  Hardcoded for demonstration; should be externalized in production systems
 
+---
 
-## Future Scope
+## 🚧 Design Evolution
 
-Potential next improvements for this project include:
+This project started as a simple rule-based IDS prototype, but evolved into a **modular backend security system** with:
 
-- Move from in-memory runtime state to a persistent datastore (e.g., PostgreSQL/Redis) for production durability.
-- Add network-level packet capture integrations (e.g., with Scapy/Zeek) to correlate API abuse with transport/session anomalies.
-- Introduce role-based access control and audit trails for overseer actions.
-- Add adaptive risk scoring (per-user baselines, anomaly detection, and model-assisted scoring).
-- Export observability metrics and traces (Prometheus/OpenTelemetry + Grafana dashboards).
-- Support configurable response policies (alert-only, soft block, hard block, and temporary quarantine windows).
-- Add containerized deployment templates (Docker Compose/Kubernetes) with horizontal scaling guidance.
-- Expand test coverage with integration and load tests to validate detection quality under realistic traffic.
+* Middleware-based request interception
+* Layered detection architecture
+* Behavioral scoring with decay
+* Real-time monitoring and observability
 
-## License
+---
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file.
+## 🔮 Future Scope
+
+* Persistent storage (PostgreSQL / Redis)
+* ML-based anomaly detection
+* Advanced rate limiting strategies
+* Observability (Prometheus + Grafana)
+* Containerized deployment (Docker / Kubernetes)
+
+---
+
+## 📄 License
+
+MIT License
