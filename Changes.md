@@ -16,3 +16,11 @@ while keeping what should be ephemeral or some that should be cached
 7. Understand and own frontend to backend communication to have better stats on dashboard
 
 8. Learn and implement Unit Testing to test every detector in real life situations and answer request/sec, detection latency, memory usage, CPU usage, False-Positive rate, False-negative Rate
+
+9. Brute-force detection / attribution
+
+Current failed-login tracking is keyed only by username, which can attribute an attacker's failed attempts to the legitimate account owner.
+Investigate tracking both the targeted account and request source independently.
+Move enforcement/checking earlier in the authentication flow so an already-restricted source/account cannot continue making authentication attempts.
+Consider distributed brute-force/credential-stuffing scenarios and avoid blocking legitimate users solely because their account is being targeted.
+Evaluate false-positive and false-negative behavior.
