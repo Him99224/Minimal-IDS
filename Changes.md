@@ -32,3 +32,11 @@ while keeping what should be ephemeral or some that should be cached
     introduce the concept of attack velocity to brute force attempt detector
 
     not able to find out if an attacker is brute forcing or if it is the user who forgot the password... 
+
+10. Rework middleware skip logic
+
+   - Current path-prefix skip check occurs before all IDS processing.
+   - Routes such as `/api/` can therefore bypass rate tracking, authentication-related checks, behavioral detection, payload inspection and threat scoring.
+   - Evaluate whether route-specific exclusions should skip individual detectors rather than the entire IDS.
+   - Avoid relying on obscurity of excluded routes as a security boundary.
+   - Determine which security controls should apply globally and which should be route-specific.
