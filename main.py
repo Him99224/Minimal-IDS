@@ -28,6 +28,7 @@ from models import LoginRequest, TokenResponse
 from scoring_engine import record_threat
 from state import BLOCKED_USERS, FAILED_ATTEMPTS, REQUEST_LOG, SESSION_IP_MAP, THREAT_LOG, TOKEN_BLACKLIST, USER_SCORES
 from ws_manager import manager
+from routers.overseer import require_overseer
 
 app = FastAPI(title="Minimal IDS Backend", version="1.0.0")
 security = HTTPBearer(auto_error=False)
@@ -271,7 +272,7 @@ class _EventEncoder(json.JSONEncoder):
 
 
 @app.get("/api/stats")
-def api_stats():
+def api_stats(_: dict = Depends(require_overseer)) -> dict:
     """Return aggregated IDS statistics for the dashboard."""
 
     severity_counts: dict[str, int] = {}
@@ -292,7 +293,7 @@ def api_stats():
 
 
 @app.get("/api/threats/recent")
-def api_recent_threats(limit: int = 50):
+def api_recent_threats(limit: int = 50, _: dict = Depends(require_overseer)) -> list[dict]:
     """Return the most recent threat events for initial dashboard load."""
 
     ordered = sorted(THREAT_LOG, key=lambda e: e.timestamp, reverse=True)[:limit]
@@ -300,7 +301,7 @@ def api_recent_threats(limit: int = 50):
 
 
 @app.get("/api/users")
-def api_users():
+def api_users(_: dict = Depends(require_overseer)) -> list[dict]:
     """Return all tracked users with scores and block status."""
 
     user_ids = set(USER_SCORES) | set(BLOCKED_USERS)

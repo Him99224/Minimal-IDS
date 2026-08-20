@@ -160,9 +160,11 @@
     // ---------------------------------------------------------------------------
     async function loadInitialData() {
         try {
+            const authHeader = { 'Authorization': `Bearer ${authToken}` };
+
             const [statsRes, threatsRes] = await Promise.all([
-                fetch('/api/stats'),
-                fetch('/api/threats/recent?limit=50'),
+                fetch('/api/stats', { headers: authHeader }),
+                fetch('/api/threats/recent?limit=50', { headers: authHeader }),
             ]);
             const stats = await statsRes.json();
             const threats = await threatsRes.json();
@@ -181,7 +183,7 @@
 
     async function loadUsers() {
         try {
-            const res = await fetch('/api/users');
+            const res = await fetch('/api/users', { headers: { 'Authorization': `Bearer ${authToken}` } });
             const users = await res.json();
             renderUserTable(users);
         } catch (_) { /* swallow */ }

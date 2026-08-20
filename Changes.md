@@ -40,3 +40,11 @@ while keeping what should be ephemeral or some that should be cached
    - Evaluate whether route-specific exclusions should skip individual detectors rather than the entire IDS.
    - Avoid relying on obscurity of excluded routes as a security boundary.
    - Determine which security controls should apply globally and which should be route-specific.
+
+11. Secure dashboard/API control plane
+   - `/api/*` is currently excluded from IDS middleware.
+   - Dashboard API endpoints currently expose IDS state without authentication.
+   - Determine which dashboard data is public vs authenticated.
+   - Protect sensitive monitoring endpoints with appropriate authorization.
+   - Separate read-only monitoring permissions from administrative actions.
+   - Reconsider whether `/api/*` should bypass global security controls.
