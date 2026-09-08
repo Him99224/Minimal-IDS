@@ -137,7 +137,7 @@ async def intrusion_detection_middleware(request: Request, call_next):
     """Apply rate and payload-based intrusion checks before routing requests."""
 
     # Skip checks for static assets, dashboard, internal API, websocket, and docs
-    skip_prefixes = ("/static", "/dashboard", "/api/", "/ws/", "/demo/", "/docs", "/openapi.json")
+    skip_prefixes = ("/static", "/dashboard", "/ws/", "/demo/", "/docs", "/openapi.json")
     if any(request.url.path.startswith(p) for p in skip_prefixes):
         return await call_next(request)
 

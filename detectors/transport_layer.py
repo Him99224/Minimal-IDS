@@ -8,7 +8,7 @@ import time
 from typing import Optional
 from urllib.parse import unquote
 
-from config import WINDOW_SECONDS
+from config import WINDOW_SECONDS, REQUEST_LIMIT
 from state import REQUEST_LOG
 
 
@@ -65,7 +65,7 @@ def check_high_request_rate(ip_address: str, user_id: Optional[str]) -> Optional
     ip_queue = REQUEST_LOG[ip_address]
     while ip_queue and (now_ts - ip_queue[0]) > WINDOW_SECONDS:
         ip_queue.popleft()
-    if len(ip_queue) > 20:
+    if len(ip_queue) > REQUEST_LIMIT:
         return "HIGH_REQUEST_RATE"
     return None
 

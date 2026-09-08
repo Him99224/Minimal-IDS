@@ -48,3 +48,10 @@ while keeping what should be ephemeral or some that should be cached
    - Protect sensitive monitoring endpoints with appropriate authorization.
    - Separate read-only monitoring permissions from administrative actions.
    - Reconsider whether `/api/*` should bypass global security controls.
+
+12. Rework request-rate tracking and enforcement
+   - Removing `/api/` from the middleware bypass correctly brought dashboard APIs under IDS protection, but normal dashboard polling now contributes to the same IP request bucket as attack traffic.
+   - Current rate tracking is globally keyed by client IP, causing unrelated requests from the same source to share one counter.
+   - Need to define rate-limit scope: source, user, endpoint, route class, and/or authentication state.
+   - Separate detection from enforcement so legitimate high-volume application traffic is not automatically treated as malicious.
+   - Evaluate local/NAT/shared-IP scenarios and authenticated vs unauthenticated traffic.
